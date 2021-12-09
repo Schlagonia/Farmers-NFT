@@ -45,11 +45,14 @@ contract Farmers is ERC721URIStorage, Ownable {
         uint256 tokenId
     );
 
-    constructor(uint256 maxNftSupply, address payable _farmtroller) ERC721("AVAX Farmers", "FRMR") {
+    constructor(uint256 maxNftSupply) ERC721("AVAX Farmers", "FRMR") {
         //owner = msg.sender;
-        Farmtroller = _farmtroller;
         MAX_FARMERS = maxNftSupply;
         //REVEAL_TIMESTAMP = saleStart + (86400 * 9);
+    }
+
+    function setFarmtroller(address payable _farmtroller) public onlyOwner {
+        Farmtroller = _farmtroller;
     }
 
     //withdrawas funds in contract to Farmtroller to be invested
