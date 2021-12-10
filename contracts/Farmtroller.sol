@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import { IFarmers } from './interfaces/IFarmers.sol';
+
 import "hardhat/console.sol";
 
 contract Farmtroller is Ownable {
@@ -37,7 +39,7 @@ contract Farmtroller is Ownable {
     //calculats the underlyingvalue for each NFT
     function NAV() public returns (uint256) {
         //pps = getalance() / Farmer.supply();
-        uint supply = Farmers.supply();
+        uint supply = Farmers.getSupply();
         if( supply > 0){
             nav = ((getBalance() * 1000) / supply);
         } else {
@@ -70,8 +72,7 @@ contract Farmtroller is Ownable {
 
     }
 
-
-    function setInvestmentPool(address _pool1, address _pool2, address _pool3, address _pool4) public onlyOwner {
+    function setInvestmentPool(address _pool1, address _pool2, address _pool3, address _pool4) external onlyOwner {
         //instantiate the contracts for the pools that won the vote
         pool1 = _pool1;
         pool2 = _pool2;
@@ -84,7 +85,7 @@ contract Farmtroller is Ownable {
         // get balance of the fund
     }
 
-    function invest() public onlyOwner {
+    function invest() external onlyOwner {
         //get ballance of fund
         uint balance = getBalance();
 

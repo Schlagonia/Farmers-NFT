@@ -4,6 +4,7 @@ Farmers Contract
 
 1. Write in Logic to increase the price when certain amount of NFTs have been purchased
 2. set timer to start mint
+3. Create Royalty that keeps % to be added to treasury upon any sales
 
 Governance
 
@@ -19,6 +20,7 @@ Farmtroller
 2. takes balance of the account 
 3. Ability to farm and claim rewards
 4. upon call from Farmers it pulls single NFT value in AVAx and send it to Farmers contract
+    -- keeps 2% for the treasury upon any burn() call
 5. Recalls all invested funds to re-deploy or rebalance after each vote
 6. Sends funds to pool contract that can be continously deployed for new pools voted in or reused
     - all pool contracts should have same interface for farmtroller to interact with but specifically designed for a LP pool/ staking etc

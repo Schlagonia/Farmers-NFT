@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import { IFarmtroller } from './interfaces/Ifarmtroller.sol';
+
 import "hardhat/console.sol";
 
 // We need to import the helper functions from the contract that we copy/pasted.
@@ -33,6 +35,7 @@ contract Farmers is ERC721URIStorage, Ownable {
 
     //determine how many there will
     uint256 public MAX_FARMERS;
+    uint256 public supply = 0;
 
     bool public saleIsActive = false;
 
@@ -51,32 +54,36 @@ contract Farmers is ERC721URIStorage, Ownable {
         //REVEAL_TIMESTAMP = saleStart + (86400 * 9);
     }
 
-    function setFarmtroller(address payable _farmtroller) public onlyOwner {
+    function setFarmtroller(address payable _farmtroller) external onlyOwner {
         Farmtroller = _farmtroller;
     }
 
     //withdrawas funds in contract to Farmtroller to be invested
-    function withdraw() public onlyOwner {
+    function withdraw() external onlyOwner {
         uint balance = address(this).balance;
         Farmtroller.transfer(balance);
     }
 
-    function numberMinted() public view returns(uint256) {
+    function getSupply() external view returns(uint256) {
+        return supply;
+    }
+
+    function numberMinted() external view returns(uint256) {
         return _tokenIds.current();
     }    
 
-    function bal(address _address) public view returns (uint256) {
+    function bal(address _address) external view returns (uint256) {
         return balanceOf(_address);
     }
 
     // Pause sale if active, make active if paused
-    function flipSaleState() public onlyOwner {
+    function flipSaleState() external onlyOwner {
         saleIsActive = !saleIsActive;
     }
 
     //Mints nft'S    
     //@dev still need to determine how to host Json with Moralis and include each item ID
-    function mintFarmer(uint numberOfTokens) public payable {
+    function mintFarmer(uint numberOfTokens) external payable {
         require(saleIsActive, "Sale must be active to mint Farmer");
         require(numberOfTokens <= maxFarmerPurchase, "Can only mint 10 tokens at a time");
         require(farmerPrice.mul(numberOfTokens) <= msg.value, "AVAX value sent is not correct");
@@ -117,6 +124,7 @@ contract Farmers is ERC721URIStorage, Ownable {
             _setTokenURI(newItemId, finalTokenUri);
 
             _tokenIds.increment();
+            supply +=;
 
             emit NFTMinted(msg.sender, newItemId);
             console.log("An NFT w/ ID %s has been minted to %s", newItemId, msg.sender);
@@ -124,10 +132,11 @@ contract Farmers is ERC721URIStorage, Ownable {
 
     }
 
-    function burn(uint256 _tokenId) public {
+    function burn(uint256 _tokenId) external {
         require(ownerOf(_tokenId) == msg.sender);
 
         _burn(_tokenId);
+        supply -=;
 
         //pull funds from Farmtroller based off of current value of the NFT
 
