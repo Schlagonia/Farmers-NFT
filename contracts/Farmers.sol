@@ -3,11 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-import { IFarmtroller } from './interfaces/Ifarmtroller.sol';
 
 import "hardhat/console.sol";
 
@@ -20,8 +17,9 @@ contract Farmers is ERC721URIStorage, Ownable {
     using SafeMath for uint256;
 
     //Keeps track of how many minted
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+    uint256 public tokenIds = 0;
+    //Keep track of circulating supply. Minted - Burned
+    uint256 public supply = 0;
 
     address payable Farmtroller;
 
@@ -35,7 +33,6 @@ contract Farmers is ERC721URIStorage, Ownable {
 
     //determine how many there will
     uint256 public MAX_FARMERS;
-    uint256 public supply = 0;
 
     bool public saleIsActive = false;
 
@@ -69,7 +66,7 @@ contract Farmers is ERC721URIStorage, Ownable {
     }
 
     function numberMinted() external view returns(uint256) {
-        return _tokenIds.current();
+        return tokenIds;
     }    
 
     function bal(address _address) external view returns (uint256) {
@@ -89,7 +86,7 @@ contract Farmers is ERC721URIStorage, Ownable {
         require(farmerPrice.mul(numberOfTokens) <= msg.value, "AVAX value sent is not correct");
         
         for(uint i = 0; i < numberOfTokens; i++) {
-            uint256 newItemId = _tokenIds.current();
+            uint256 newItemId = tokenIds;
 
             require(newItemId < MAX_FARMERS, "All NFT's have been Minted");
 
@@ -123,8 +120,8 @@ contract Farmers is ERC721URIStorage, Ownable {
 
             _setTokenURI(newItemId, finalTokenUri);
 
-            _tokenIds.increment();
-            supply +=;
+            tokenIds;
+            supply.add(1);
 
             emit NFTMinted(msg.sender, newItemId);
             console.log("An NFT w/ ID %s has been minted to %s", newItemId, msg.sender);
@@ -135,9 +132,9 @@ contract Farmers is ERC721URIStorage, Ownable {
     function burn(uint256 _tokenId) external {
         require(ownerOf(_tokenId) == msg.sender);
 
+        supply.sub(1);
         _burn(_tokenId);
-        supply -=;
-
+        
         //pull funds from Farmtroller based off of current value of the NFT
 
 
