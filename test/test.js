@@ -1,8 +1,8 @@
 
 const main = async () => {
 
+    const yakRouter = '0xC4729E56b831d74bBc18797e0e17A295fA77488c'
     
-
     const farmerFactory = await hre.ethers.getContractFactory("Farmers");
     const farmerContract = await farmerFactory.deploy(10000);
     await farmerContract.deployed();
@@ -16,9 +16,10 @@ const main = async () => {
     const setTroller = await farmerContract.setFarmtroller(farmtrollerContract.address)
     await setTroller.wait()
     console.log(setTroller)
-
-
-
+    
+    const setRouter = await farmtrollerContract.setYakregator(yakRouter);
+    await setRouter.wait()
+    console.log(setRouter)
 }
 
 const runMain = async () => {

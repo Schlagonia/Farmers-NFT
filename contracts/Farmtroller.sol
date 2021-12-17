@@ -20,11 +20,15 @@ contract Farmtroller is Ownable, Yakanator {
     uint public nav;
     uint public fundOwns = 0;
     
-
-    address pool1;
-    address pool2;
-    address pool3;
-    address pool4;
+    //current yak vaults and underlying tokens being used
+    address vault1;
+    address token1;
+    address vault2;
+    address token2;
+    address vault3;
+    address token3;
+    address vault4;
+    address token4;
 
     constructor(address _Farmers) {
         Farmers = IFarmers(_Farmers);
@@ -41,7 +45,7 @@ contract Farmtroller is Ownable, Yakanator {
         //pps = getalance() / Farmer.supply();
         uint supply = Farmers.getSupply();
         if( supply > 0){
-            nav = getBalance().mul(1000).div(supply);
+            nav = getBalance().div(supply);
         } else {
             nav = 0;
         }
@@ -65,7 +69,7 @@ contract Farmtroller is Ownable, Yakanator {
     }
 
 
-    //@dev
+    //
     //on harvest of reward tokens fundOwns is taken out and sent to owner
     function chargeManagementFee() external onlyOwner returns (uint) {
         uint charge = getBalance().div(managementFee);
@@ -73,16 +77,23 @@ contract Farmtroller is Ownable, Yakanator {
         fundOwns = fundOwns.add(charge);
         
         return charge;
-
     }
 
-    function setInvestmentPool(address _pool1, address _pool2, address _pool3, address _pool4) external onlyOwner {
-        //instantiate the contracts for the pools that won the vote
-        pool1 = _pool1;
-        pool2 = _pool2;
-        pool3 = _pool3;
-        pool4 = _pool4;
-        //takes balance of the troller and sends 25% of the funds to each pool
+    function setInvestmentPool(
+        address _vault1, address _token1, 
+        address _vault2, address _token2,
+        address _vault3, address _token3,
+        address _vault4, address _token4
+    ) external onlyOwner {
+        //assign the contracts and the tokens for the vault that won the vote
+        vault1 = _vault1;
+        token1 = _token1;
+        vault2 = _vault2;
+        token2 = _token2;
+        vault3 = _vault3;
+        token3 = _token3;
+        vault4 = _vault4;
+        token4 = _token4;
     }
 
     function getBalance() public view returns( uint256) {
@@ -90,7 +101,7 @@ contract Farmtroller is Ownable, Yakanator {
         //AVAX held in the account
         uint256 bal = address(this).balance;
         //add up the current balance of each pool
-
+        //subtract what the fund owns
 
         return bal;
     }
@@ -102,8 +113,38 @@ contract Farmtroller is Ownable, Yakanator {
         //divide balance into fourths
         uint fourth = bal.div(4);
 
-        //invest each quarter into each pool
+        //invest each quarter into each 
+        _stake(fourth, token1, vault1);
+        _stake(fourth, token2, vault2);
+        _stake(fourth, token3, vault3);
+        _stake(fourth, token4, vault4);
        
+    }
+
+    function divestAll() external onlyOwner {
+        uint256 bal1 = _balance(vault1);
+        _unStake(bal1, vault1);
+        //swap to avax
+
+        uint256 bal2 = _balance(vault2);
+        _unStake(bal2, vault2);
+
+        uint256 bal3 = _balance(vault3);
+        _unStake(bal3, vault3);
+
+        uint256 bal4 = _balance(vault4);
+        _unStake(bal4, vault4);
+    }
+
+    function pullFunds(uint256 _amount, address _token, address _vault) external returns(uint256){
+        _unStake(_amount, _vault);
+
+        //swap to avax if need be
+        if(_token != WAVAX) {
+         _swapToAvax(_amount, address(this), _token, WAVAX);
+        }
+        
+        return _amount;
     }
 
     function burningToken() external returns(uint) {

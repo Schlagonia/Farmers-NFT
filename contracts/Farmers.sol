@@ -60,7 +60,7 @@ contract Farmers is ERC721URIStorage, Ownable {
     //withdrawas funds in contract to Farmtroller to be invested
     function withdraw() external onlyOwner {
         uint balance = address(this).balance;
-        Farmtroller.transfer(balance);
+        payable(address(Farmtroller)).transfer(balance);
     }
 
     function getSupply() external view returns(uint256) {
