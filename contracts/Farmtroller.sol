@@ -4,11 +4,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import './Yakanator.sol';
+
 import { IFarmers } from './interfaces/IFarmers.sol';
 
 import "hardhat/console.sol";
 
-contract Farmtroller is Ownable {
+contract Farmtroller is Ownable, Yakanator {
  
     using SafeMath for uint256;
 
@@ -24,7 +26,7 @@ contract Farmtroller is Ownable {
     address pool3;
     address pool4;
 
-    constructor(IFarmers _Farmers) {
+    constructor(address _Farmers) {
         Farmers = IFarmers(_Farmers);
     }
 
@@ -102,6 +104,10 @@ contract Farmtroller is Ownable {
 
         //invest each quarter into each pool
        
+    }
+
+    function burningToken() external returns(uint) {
+        
     }
 
     // Need this to receive AVAX 

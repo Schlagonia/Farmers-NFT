@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import { IFarmtroller } from './interfaces/IFarmtroller.sol';
+
 import "hardhat/console.sol";
 
 // We need to import the helper functions from the contract that we copy/pasted.
@@ -21,7 +23,7 @@ contract Farmers is ERC721URIStorage, Ownable {
     //Keep track of circulating supply. Minted - Burned
     uint256 public supply = 0;
 
-    address payable Farmtroller;
+    IFarmtroller Farmtroller;
 
     //price to mint. This should start at 1 avax and grow once a certain amount are minted
     //creates urgency to mint and reward early adopters and first minters will get immediate ROR based on avg. NFT NAV being higher than
@@ -52,7 +54,7 @@ contract Farmers is ERC721URIStorage, Ownable {
     }
 
     function setFarmtroller(address payable _farmtroller) external onlyOwner {
-        Farmtroller = _farmtroller;
+        Farmtroller = IFarmtroller(_farmtroller);
     }
 
     //withdrawas funds in contract to Farmtroller to be invested
