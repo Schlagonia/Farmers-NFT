@@ -17,6 +17,23 @@ contract Yakanator is Ownable {
     IYakregator yakregator;
     address public constant WAVAX = 0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7;
     uint gasPrice = 225000000000;
+    uint maxSteps = 4;
+
+    event staked(
+        uint256 amount,
+        address vault
+    );
+
+    event unstaked(
+        uint256 amount,
+        address vault
+    );
+
+    event swapped(
+        uint256 amount,
+        address from,
+        address to
+    );
 
     function setYakregator(address _yakregator) external onlyOwner{
         yakregator = IYakregator(_yakregator);
@@ -26,30 +43,46 @@ contract Yakanator is Ownable {
         gasPrice = _gasPrice;
     }
 
-    function _stake(uint256 _amount, address _token, address _vault) internal {
-        //takes in tokens and stakes them in specified Yak vault
-        IYakVault vault = IYakVault(_vault);
-        //approve spending of token
-
-
-        vault.deposit(_token, _amount);
+    function setMaxSteps(uint256 _steps) external onlyOwner {
+        maxSteps = _steps;
     }
 
-    function _unStake(uint256 _amount, address _vault) internal {
+    function _stake(address _token, address _vault, uint256 _amount) internal {
+        //takes in tokens and stakes them in specified Yak vault
+        IYakVault vault = IYakVault(_vault);
+        
+        //check if depositing avax of erc20
+        if(_token == WAVAX){
+            vault.deposit(_token, _amount);
+        } else {
+            IERC20 token = IERC20(_token);
+            uint256 bal = token.balanceOf(address(this));
+            //approve spending of token
+            token.approve(_vault,  bal);
+
+            vault.deposit(_token, bal);
+        }
+
+        emit staked(_amount, _vault);
+    }
+
+    function _unstake(uint256 _amount, address _vault) internal {
         //takes in amount and pulls from the pool
         IYakVault vault = IYakVault(_vault);    
         vault.withdraw(_amount);
+
+        emit unstaked(_amount, _vault);
     }
 
     function _query(uint256 _amountIn, address _tokenIn, address _tokenOut) internal view returns (IYakregator.FormattedOfferWithGas memory) {
-        IYakregator.FormattedOfferWithGas memory offer = yakregator.findBestPathWithGas(_amountIn, _tokenIn, _tokenOut, 4, gasPrice);
+        IYakregator.FormattedOfferWithGas memory offer = yakregator.findBestPathWithGas(_amountIn, _tokenIn, _tokenOut, maxSteps, gasPrice);
 
         return offer;
     } 
 
-    function _swapToAvax(uint256 _amount, address _out, address _from, address _to) internal {
+    function _swapToAvax(uint256 _amount, address _from) internal {
         //takes in token swaps with aggregator
-        IYakregator.FormattedOfferWithGas memory offer = _query(_amount, _from, _to);
+        IYakregator.FormattedOfferWithGas memory offer = _query(_amount, _from, WAVAX);
         //FormattedOfferWithGas memory offer = yakregator.findBestPathWithGas(_amount, _from, _to, 4, gasPrice);
         
         IYakregator.Trade memory trade = IYakregator.Trade(
@@ -59,12 +92,16 @@ contract Yakanator is Ownable {
             offer.adapters
         );
 
-        yakregator.swapNoSplitToAVAX(trade, _out);
+        //need to approve spending 
+
+        yakregator.swapNoSplitToAVAX(trade, address(this));
+
+        emit swapped(_amount, _from, WAVAX);
 
     }
 
-    function _swapFromAvax(uint256 _amount, address _out, address _from, address _to) internal{
-        IYakregator.FormattedOfferWithGas memory offer = _query(_amount, _from, _to);
+    function _swapFromAvax(uint256 _amount, address _to) internal{
+        IYakregator.FormattedOfferWithGas memory offer = _query(_amount, WAVAX, _to);
         
         IYakregator.Trade memory trade = IYakregator.Trade(
             _amount,
@@ -73,8 +110,9 @@ contract Yakanator is Ownable {
             offer.adapters
         );
 
-        yakregator.swapNoSplitFromAVAX(trade, _out);
+        yakregator.swapNoSplitFromAVAX(trade, address(this));
 
+        emit swapped(_amount, WAVAX, _to);
     }
 
     //returns balance of specific pool

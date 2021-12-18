@@ -138,7 +138,7 @@ contract Farmers is ERC721URIStorage, Ownable {
         _burn(_tokenId);
         
         //pull funds from Farmtroller based off of current value of the NFT
-
+        Farmtroller.burningToken(msg.sender);
 
         //send funds equal to NFT NAV - royalty fee that goes to tresury to msg.sender
 

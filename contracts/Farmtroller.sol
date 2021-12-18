@@ -15,34 +15,73 @@ contract Farmtroller is Ownable, Yakanator {
     using SafeMath for uint256;
 
     IFarmers Farmers;
-    uint public managementFee;
+    uint256 public managementFee;
     //underlying value per each outstanding NFT to 1e3 
-    uint public nav;
-    uint public fundOwns = 0;
-    
-    //current yak vaults and underlying tokens being used
-    address vault1;
-    address token1;
-    address vault2;
-    address token2;
-    address vault3;
-    address token3;
-    address vault4;
-    address token4;
+    uint256 public nav;
+    uint256 public fundOwns = 0;
+
+    uint256 burnRoyalty = 50;
+    uint256 vaults = 4;
+    //starting point to setrmine which vault to pull funds from using mod
+    uint256 pullVault = 100;
+    //amount to keep in famrtroller for rounding errors/slippage
+    // 100/buffer == %
+    uint256 buffer = 100;
+
+    //current yak vaults and underlying tokens being used set to id 0 -3
+    mapping(uint256 => address) vault;
+    mapping(uint256 => address) token;
+
+    modifier farmersOnly {
+        require(msg.sender == address(Farmers));
+        _;
+    }
+
+    event payedOwner(
+        uint256 payed
+    );
+
+    event invested(
+        uint256 _invested
+    );
+
+    event tokenBurned(
+        address _address,
+        uint256 amount
+    );
 
     constructor(address _Farmers) {
         Farmers = IFarmers(_Farmers);
     }
 
      // _fee where 1/_fee = % t0 charge/ 1% == 100
-    function setManagementFee(uint256 _fee) external onlyOwner returns (uint ) {
+    function setManagementFee(uint256 _fee) external onlyOwner returns (uint256) {
         managementFee = _fee;
         return managementFee;
     }
 
+    function setPools(uint256 _vaults) external onlyOwner {
+        vaults = _vaults;
+    }
+
+     // _fee where 1/_fee = % t0 charge/ 1% == 100
+    function setBurnRoyalty(uint256 _royalty) external onlyOwner{
+        burnRoyalty = _royalty;
+    }
+
+    function setBuffer(uint256 _buffer) external onlyOwner {
+        buffer = _buffer;
+    }
+
+    function _vaultToPull() internal returns(uint256) {
+        uint256 id = pullVault.mod(vaults);
+        pullVault.add(1);
+        return id;
+    }
+
     //calculats the underlyingvalue for each NFT
     function NAV() public returns (uint256) {
-        //pps = getalance() / Farmer.supply();
+        //pps = balance / supply
         uint supply = Farmers.getSupply();
         if( supply > 0){
             nav = getBalance().div(supply);
@@ -56,99 +95,129 @@ contract Farmtroller is Ownable, Yakanator {
         return fundOwns;
     }
 
-    function payOwner() external onlyOwner {
-        uint256 toPay = fundOwns;
+    function payOwner() external onlyOwner returns (uint256){
+        uint256 toPay =  _chargeManagementFee();
         uint256 bal = address(this).balance;
-        if(toPay > bal){
-            //pull funds from one fund to pay owner
-        }
 
-        payable(msg.sender).transfer(fundOwns);
+        require(bal > toPay, 'Not enough AVAX');
+
+        payable(msg.sender).transfer(toPay);
+
         fundOwns = 0;
+
+        emit payedOwner(toPay);
+        return toPay;
 
     }
 
-
-    //
     //on harvest of reward tokens fundOwns is taken out and sent to owner
-    function chargeManagementFee() external onlyOwner returns (uint) {
-        uint charge = getBalance().div(managementFee);
+    function _chargeManagementFee() internal returns (uint256) {
+        uint256 charge = getBalance().div(managementFee);
         
         fundOwns = fundOwns.add(charge);
         
-        return charge;
+        return fundOwns;
     }
 
-    function setInvestmentPool(
-        address _vault1, address _token1, 
-        address _vault2, address _token2,
-        address _vault3, address _token3,
-        address _vault4, address _token4
-    ) external onlyOwner {
-        //assign the contracts and the tokens for the vault that won the vote
-        vault1 = _vault1;
-        token1 = _token1;
-        vault2 = _vault2;
-        token2 = _token2;
-        vault3 = _vault3;
-        token3 = _token3;
-        vault4 = _vault4;
-        token4 = _token4;
+    //pass number 0 - 3 as the id and it is used to assign mapping of that id with vault and token address
+    function setInvestmentPool(uint256 _id, address _vault, address _token) external onlyOwner {
+        vault[_id] = _vault;
+        token[_id] = _token;
     }
 
-    function getBalance() public view returns( uint256) {
-        // get balance of the fund
-        //AVAX held in the account
+    //@dev need to convert balances to avax or usd
+    function getBalance() public view returns(uint256) {
+        //AVAX held 
         uint256 bal = address(this).balance;
+
         //add up the current balance of each pool
+        for(uint256 i = 0; i < vaults; i ++){
+            uint256 valance = _balance(vault[i]);
+            if(token[i] == WAVAX){
+                bal.add(valance);
+            } else {            
+
+                IYakregator.FormattedOfferWithGas memory offer = _query(valance, token[i], WAVAX);
+            
+                bal.add(offer.amounts[1]);
+            }
+        }
         //subtract what the fund owns
+        bal = bal.sub(fundOwns);
 
         return bal;
     }
 
     function invest() external onlyOwner {
         //get ballance of fund
-        uint bal = getBalance();
-
+        uint256 bal = getBalance();
+        //subtract buffer
+        uint256 toInvest = bal.sub(bal.div(buffer)); 
         //divide balance into fourths
-        uint fourth = bal.div(4);
+        uint256 fourth = toInvest.div(4);
 
-        //invest each quarter into each 
-        _stake(fourth, token1, vault1);
-        _stake(fourth, token2, vault2);
-        _stake(fourth, token3, vault3);
-        _stake(fourth, token4, vault4);
+        //invest each quarter into each vault
+        for(uint256 i = 0; i < vaults; i ++) {
+            if(token[i] != WAVAX){
+                //if not staking avax swap to token
+                _swapFromAvax(fourth, token[i]);
+                //stake with 0 as amount cause it wont be used
+                _stake(token[i], vault[i], 0) ;
+            } else {
+                _stake(token[i], vault[i], fourth);
+            }
+
+        }
+
+        emit invested(toInvest);
        
     }
 
     function divestAll() external onlyOwner {
-        uint256 bal1 = _balance(vault1);
-        _unStake(bal1, vault1);
-        //swap to avax
 
-        uint256 bal2 = _balance(vault2);
-        _unStake(bal2, vault2);
+        for(uint256 i = 0; i < vaults; i ++){
+            uint256 valance = _balance(vault[i]);
+            _unstake(valance, vault[i]);
 
-        uint256 bal3 = _balance(vault3);
-        _unStake(bal3, vault3);
+            if(token[i] != WAVAX){
+                _swapToAvax(valance, token[i]);
+            }
 
-        uint256 bal4 = _balance(vault4);
-        _unStake(bal4, vault4);
+        }
+
     }
 
-    function pullFunds(uint256 _amount, address _token, address _vault) external returns(uint256){
-        _unStake(_amount, _vault);
+    //@dev need to convert amounts to what is being pulled out
+    function _pullFunds(uint256 _amount, uint256 _id) internal returns(bool){
+        
+        if(token[_id] == WAVAX) {
+            _unstake(_amount, vault[_id]);
 
-        //swap to avax if need be
-        if(_token != WAVAX) {
-         _swapToAvax(_amount, address(this), _token, WAVAX);
+            return true;
+
+        } else {
+            IYakregator.FormattedOfferWithGas memory offer = _query(_amount, WAVAX, token[_id]);
+            _unstake(offer.amounts[1], vault[_id]);
+            _swapToAvax(offer.amounts[1], token[_id]);
+
+            return true;
         }
         
-        return _amount;
     }
 
-    function burningToken() external returns(uint) {
-        
+    function burningToken(address _address) external farmersOnly returns(uint) {
+        NAV();
+
+        uint256 toPull = nav.div(burnRoyalty);
+        //decide which fund to pull from
+        uint256 id = _vaultToPull();
+        //random, switch everytime, any that are avax, or lowest current yield
+        _pullFunds(toPull, id);
+
+        payable(_address).transfer(toPull);
+
+        emit tokenBurned(_address, toPull);
+        return toPull;
     }
 
     // Need this to receive AVAX 
