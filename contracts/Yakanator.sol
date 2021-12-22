@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IYakregator} from './interfaces/IYakregator.sol';
-import {IYakVault} from './interfaces/IYakVault.sol';
+import {IYakFarm} from './interfaces/IYakFarm.sol';
 
 import "hardhat/console.sol";
 
@@ -49,18 +49,21 @@ contract Yakanator is Ownable {
 
     function _stake(address _token, address _vault, uint256 _amount) internal {
         //takes in tokens and stakes them in specified Yak vault
-        IYakVault vault = IYakVault(_vault);
+        IYakFarm vault = IYakFarm(_vault);
+        IERC20 token = IERC20(_token);
         
         //check if depositing avax of erc20
         if(_token == WAVAX){
-            vault.deposit(_token, _amount);
+            console.log('Staking WAVAX:');
+        
+            vault.deposit{ value: _amount }(_amount);
         } else {
-            IERC20 token = IERC20(_token);
+            console.log('Staking ERC20');
             uint256 bal = token.balanceOf(address(this));
             //approve spending of token
             token.approve(_vault,  bal);
 
-            vault.deposit(_token, bal);
+            vault.deposit(bal);
         }
 
         emit staked(_amount, _vault);
@@ -68,7 +71,7 @@ contract Yakanator is Ownable {
 
     function _unstake(uint256 _amount, address _vault) internal {
         //takes in amount and pulls from the pool
-        IYakVault vault = IYakVault(_vault);    
+        IYakFarm vault = IYakFarm(_vault);    
         vault.withdraw(_amount);
 
         emit unstaked(_amount, _vault);
@@ -117,7 +120,7 @@ contract Yakanator is Ownable {
 
     //returns balance of specific pool
     function _balance(address _vault) internal view returns(uint) {
-        IYakVault vault = IYakVault(_vault);
+        IYakFarm vault = IYakFarm(_vault);
         uint256 bal = vault.balanceOf(address(this));
 
         return bal;

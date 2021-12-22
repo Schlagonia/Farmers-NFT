@@ -1,0 +1,10 @@
+
+
+const constants = {
+    FARMERS_ADDRESS: '0xa85233C63b9Ee964Add6F2cffe00Fd84eb32338f',
+    account: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+    ether: '1000000000000000000',
+}
+
+const wavax = '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7'
+const avaxJoe = '0xf6cCf601bd024612aAF85440153c2df0524E4607'

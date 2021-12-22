@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 
-interface IYakVault {
+interface IYakFarm {
 
-    function withdraw(uint amount) external;
-    function deposit(address token, uint amount) external;
+    function withdraw(uint256 amount) external;
+    function deposit(uint256 amount) external payable;
     function balanceOf(address account) external view returns (uint);
 }
