@@ -6,7 +6,7 @@ const main = async () => {
     
         const ether = '1000000000000000000';
         const options = { gas: 50000000 };
-        const FARMTROLLER_ADDRESS = '0xa82fF9aFd8f496c3d6ac40E2a0F282E47488CFc9';
+        const FARMTROLLER_ADDRESS = '0x59b670e9fA9D0A427751Af201D676719a970857b';
         const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
 
         const signer = await ethers.getSigner(account)

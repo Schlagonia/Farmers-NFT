@@ -1,3 +1,4 @@
+const { hre, network, waffle, ethers } = require("hardhat");
 
 const main = async () => {
 
