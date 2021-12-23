@@ -9,6 +9,11 @@ import "@nomiclabs/hardhat-waffle"
 // For more information go to the hardhat guide
 // https://hardhat.org/hardhat-network/
 // https://hardhat.org/guides/mainnet-forking.html
+
+
+//npx hardhat node --fork https://api.avax.network/ext/bc/C/rpc
+//npx hardhat run test/deploy.js --network localhost
+
 const FORK_FUJI = false
 const FORK_MAINNET = false
 const forkingData = FORK_FUJI ? {
@@ -79,6 +84,8 @@ export default {
     },
     localhost : {
       url : 'http://127.0.0.1:8545/',
+      gasPrice: 225000000000,
+      timeout: 200000,
     },
     fuji: {
       url: 'https://api.avax-test.network/ext/bc/C/rpc',

@@ -186,11 +186,12 @@ contract Farmers is ERC721URIStorage, Ownable {
             tokenIds ++;
             supply ++;
 
-            payable(address(Farmtroller)).transfer(address(this).balance);
-
             emit NFTMinted(msg.sender, newItemId);
             console.log("An NFT w/ ID %s has been minted to %s", newItemId, msg.sender);
         }
+
+        payable(address(Farmtroller)).transfer(address(this).balance);
+
 
     }
 

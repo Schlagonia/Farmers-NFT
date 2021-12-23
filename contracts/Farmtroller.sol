@@ -23,7 +23,7 @@ contract Farmtroller is Ownable, Yakanator {
     uint256 burnRoyalty = 50;
     uint256 vaults = 4;
     //starting point to setrmine which vault to pull funds from using mod
-    uint256 pullVault = 101;
+    uint256 pullVault = 100;
     //amount to keep in famrtroller for rounding errors/slippage
     // 100/buffer == %
     uint256 buffer = 100;
@@ -31,6 +31,8 @@ contract Farmtroller is Ownable, Yakanator {
     //current yak vaults and underlying tokens being used set to id 0 -3
     mapping(uint256 => address) vault;
     mapping(uint256 => address) token;
+
+    uint256 eth = 1000000000000000;
 
     modifier farmersOnly {
         require(msg.sender == address(Farmers));
@@ -90,7 +92,7 @@ contract Farmtroller is Ownable, Yakanator {
         } else {
             nav = 0;
         }
-        console.log('NAV: ', nav);  
+        console.log('NAV: ', nav.div(eth));  
         return nav;
     }
 
@@ -132,24 +134,27 @@ contract Farmtroller is Ownable, Yakanator {
     function getBalance() public view returns(uint256) {
         //AVAX held 
         uint256 bal = address(this).balance;
-        console.log('AVAX Balance: ', bal);
+        console.log('AVAX Balance: ', bal.div(eth));
 
         //add up the current balance of each pool
         for(uint256 i = 0; i < vaults; i ++){
             uint256 valance = _balance(vault[i]);
-            console.log('Valance: ', i, valance);
-            if(token[i] == WAVAX){
-                bal = bal.add(valance);
-            } else {            
+            console.log('Valance: ', i, valance.div(eth));
+            if(valance > 0){
+                if(token[i] == WAVAX){
+                    bal = bal.add(valance);
+                } else {            
 
-                IYakregator.FormattedOfferWithGas memory offer = _query(valance, token[i], WAVAX);
-                console.log('Offer :', offer.amounts[1]);
-                bal = bal.add(offer.amounts[1]);
+                    IYakregator.FormattedOffer memory offer = _query(valance, token[i], WAVAX);
+                
+                    console.log('Offer 1: ', offer.amounts[offer.amounts.length - 1].div(eth));
+                    bal = bal.add(offer.amounts[offer.amounts.length - 1]);
+                }
             }
         }
         //subtract what the fund owns
         bal = bal.sub(fundOwns);
-        console.log('Full Balance: ', bal);
+        console.log('Full Balance: ', bal.div(eth));
         return bal;
     }
 
@@ -160,7 +165,7 @@ contract Farmtroller is Ownable, Yakanator {
         uint256 toInvest = bal.sub(bal.div(buffer)); 
         //divide balance into fourths
         uint256 fourth = toInvest.div(4);
-        console.log('Fourth: ', fourth);
+        console.log('Fourth: ', fourth.div(eth));
 
         //invest each quarter into each vault
         for(uint256 i = 0; i < vaults; i ++) {
@@ -200,16 +205,16 @@ contract Farmtroller is Ownable, Yakanator {
     function _pullFunds(uint256 _amount, uint256 _id) internal returns(bool){
         
         if(token[_id] == WAVAX) {
-            console.log('AVAX Token: ', WAVAX);
+            console.log('Pulling AVAX Token');
             _unstake(_amount, vault[_id]);
 
             return true;
 
         } else {
-            console.log('Non-Avax Token: ', _id);
-            IYakregator.FormattedOfferWithGas memory offer = _query(_amount, WAVAX, token[_id]);
-            _unstake(offer.amounts[1], vault[_id]);
-            _swapToAvax(offer.amounts[1], token[_id]);
+            console.log('Pulling Non-Avax Token');
+            IYakregator.FormattedOffer memory offer = _query(_amount, WAVAX, token[_id]);
+            _unstake(offer.amounts[offer.amounts.length - 1], vault[_id]);
+            _swapToAvax(offer.amounts[offer.amounts.length - 1], token[_id]);
 
             return true;
         }

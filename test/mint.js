@@ -5,7 +5,7 @@ const { constants } = require('./constants.js');
 
 const main = async () => {
 
-    const FARMERS_ADDRESS = '0xCD8a1C3ba11CF5ECfa6267617243239504a98d90';
+    const FARMERS_ADDRESS = '0x922D6956C99E12DFeB3224DEA977D0939758A1Fe';
     const account = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266';
     const ether = '10000000000000000000';
     const options = { value: ether };

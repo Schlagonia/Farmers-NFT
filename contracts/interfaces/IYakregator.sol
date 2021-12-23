@@ -10,6 +10,12 @@ interface IYakregator {
         address[] path;
         uint gasEstimate;
     }
+
+    struct FormattedOffer {
+        uint[] amounts;
+        address[] adapters;
+        address[] path;
+    }
     
     struct Trade {
         uint amountIn;
@@ -25,7 +31,14 @@ interface IYakregator {
         uint _maxSteps,
         uint _gasPrice
     ) external view returns (FormattedOfferWithGas memory); 
+
+    function findBestPath(
+        uint256 _amountIn, 
+        address _tokenIn, 
+        address _tokenOut, 
+        uint _maxSteps
+    ) external view returns (FormattedOffer memory);
     
-    function swapNoSplitFromAVAX(Trade calldata _trade, address _to) external payable ;
-    function swapNoSplitToAVAX(Trade calldata _trade, address _to) external;
+    function swapNoSplitFromAVAX(Trade calldata _trade, address _to, uint _fee) external payable ;
+    function swapNoSplitToAVAX(Trade calldata _trade, address _to, uint _fee) external;
 }
