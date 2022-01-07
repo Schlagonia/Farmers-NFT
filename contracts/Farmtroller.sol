@@ -200,8 +200,7 @@ contract Farmtroller is Ownable, Yakanator {
         }
 
     }
-
-    //@dev need to convert amounts to what is being pulled out
+    
     function _pullFunds(uint256 _amount, uint256 _id) internal returns(bool){
         
         if(token[_id] == WAVAX) {

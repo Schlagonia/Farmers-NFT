@@ -27,14 +27,10 @@ contract Farmers is ERC721URIStorage, Ownable {
 
     IFarmtroller Farmtroller;
 
-    //price to mint. This should start at 1 avax and grow once a certain amount are minted
-    //creates urgency to mint and reward early adopters and first minters will get immediate ROR based on avg. NFT NAV being higher than
-    //what they paid once all are minted
-    uint256 public constant firstFarmerPrice = 1000000000000000000; //1 AVAX
-    uint256 firstFarmers = 3333;
-    uint256 public constant secondFarmerPrice = 1500000000000000000; //1.5 AVAX
-    uint256 secondFarmers = 6666;
-    uint256 public constant thirdFarmerPrice = 2000000000000000000; //2 AVAX
+    //price to mint. This should start at 2 avax and grow once funds have been invested along with the NAV
+    //creates urgency to mint and rewards early adopters
+    uint256 public constant firstFarmerPrice = 2000000000000000000; //2 AVAX
+    bool invested = false;
 
     //max to purchase at a time
     uint256 public constant maxFarmerPurchase = 10;
@@ -56,13 +52,16 @@ contract Farmers is ERC721URIStorage, Ownable {
     );
 
     constructor(uint256 maxNftSupply) ERC721("AVAX Farmers", "FRMR") {
-        //owner = msg.sender;
         MAX_FARMERS = maxNftSupply;
-        //REVEAL_TIMESTAMP = saleStart + (86400 * 9);
+    
     }
 
     function setFarmtroller(address payable _farmtroller) external onlyOwner {
         Farmtroller = IFarmtroller(_farmtroller);
+    }
+
+    function invested() external onlyOwner{
+        invested = true;
     }
 
     //withdrawas funds in contract to Farmtroller to be invested
@@ -88,27 +87,14 @@ contract Farmers is ERC721URIStorage, Ownable {
         saleIsActive = !saleIsActive;
     }
 
-    function getPrice(uint256 _id) internal view returns(uint256) {
-        if(_id < firstFarmers){
-        
-            return firstFarmerPrice;
-            
-        } 
-
-        if(_id < secondFarmers) {
-            
-            return secondFarmerPrice;
-        }
-
-        else return thirdFarmerPrice;
-    }
-
-    function _getBatchPrice(uint256 _n) internal view returns (uint256) {
+    function _getBatchPrice(uint256 _n) public view returns (uint256) {
         uint256 totalPrice = 0;
         uint256 index = tokenIds;
-        for(uint256 i = 0; i < _n; i++) {
-            totalPrice += getPrice(index.add(i));
-            console.log('total price first: ', totalPrice);
+        if(!invested){
+            totalPrice = _n.mul(firstFarmerPrice);
+            
+        } else {
+            totalPrice = _n.mul(Farmtorller.NAV());
         }
         console.log('total Price: ', totalPrice);
         return totalPrice;

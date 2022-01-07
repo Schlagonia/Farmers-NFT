@@ -6,4 +6,5 @@ interface IFarmers {
     function getSupply() external view returns(uint256);
     function numberMinted() external view returns(uint256);
     function bal(address _address) external view returns (uint256);
+    function invested() external;
 }
